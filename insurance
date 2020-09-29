@@ -1,0 +1,88 @@
+url = 'https://raw.githubusercontent.com/JayRay1987/MLwR/master/Machine%20Learning%20with%20R%20(3rd%20Ed.)/Chapter06/insurance.csv'
+insurance <- read.csv(url, stringsAsFactors = TRUE)
+#structure of the data set.
+str(insurance)
+#is the expenses normally distributed?
+summary(insurance$expenses)
+#histogram of expenses
+hist(insurance$expenses)
+#data is right-skewed distribution.
+#regression requires all features to be numeric.
+table(insurance$region)
+#correlation of numeric features
+cor(insurance[c("age", "bmi", "children", "expenses")])
+#age and bmi have a weak positive correlation.
+#age and expenses has a moderate positive correlation.
+#bmi and expenses has a moderate positive correlation.
+#children and expenses has a moderate positive correlation.
+#scatterplot matrix
+pairs(insurance[c("age","bmi","children","expenses")])
+#more informative scatterplot matrix.
+#correlation ellipse - provides a viz of correlation strength.
+#dot is the mean.
+#correlation is indicated by the shape of ellipse.
+#more stretched, stronger the correlation.
+#if perfectly oval indicates v. weak correlation.
+#the loess curve indicates the general relationship between variables.
+#for example, age and expenses shows a red line with a slight incline.
+#indicating the moderate correlation between the two variables.
+install.packages("psych")
+library(psych)
+pairs.panels(insurance[c("age","bmi","children","expenses")])
+#build the linear regression model
+ins_model <- lm(expenses ~ age + children + bmi + sex + smoker + region, data = insurance)
+#ins_model <- lm(expenses ~ ., data = insurance)
+ins_model
+#beta coefficients indicate the estimated increase in expenses for an increase of one
+#in each of the features, assuming all other values are held constant.
+#example, for each additional year of age, we expect $256.8 higher medical bill on average.
+#moreover, each additional child results in an average increase of $475.7 on the medical
+#bill per year.
+#each increase unit of increase in BMI results in an increase of $339.3 on the medical bill
+#per year.
+#sexmale, smokeryes, are interpretted relative to the reference.
+#example, the variables left out are the reference variable - smokerno, sexfemale.
+#so males on average pay $131.4 less than females each year.
+#smokers pay an average $23947.5 more than non smokers per year.
+summary(ins_model)
+#residuals is the True value minus the Predicted value. thus maximum error was 29981.7.
+#so model under-predicted expenses by nearly $30,000 for at least one observation.
+#50% of errors fell between 1Q and 3Q, that is -$2850.9 over the true value and $1383.9
+#under the true value.
+#Coeeficients. p-value and significance is the most importance part. 
+#small p-value - Less than 0 is *** - indicates that feature is extremely unlikely
+#to not have a relationship with the dependent variable.
+#means very significant. So, age, children, bmi, and smoker coef are stats significantly
+#R-squared value indicates how well the model as a whole explains the variation in the
+#dependent variable.
+#so the model describes 75% of the variation in the dependent variable.
+#R-squared adjusted value penalises the model for the number of independent variables
+#used. so we can confidently say that the model describes 75% of the variation in the
+#dependent variable.
+#to improve model and account for the non-linear relationship lets introduce a polynomial.
+insurance$age2 <- insurance$age^2
+#also let's convert a numeric variable to a binary indicator
+#for BMI we will have a binary operator so say if someone is obese or not.
+insurance$bmi30 <- ifelse(insurance$bmi >= 30, 1, 0)
+#interaction in the features. two features having a combined effect is known as inter-
+#action.
+#use expenses ~ bmi30*smoker to represent this interation. This means you include
+#bmi30 + smokeryes + bmi30:smokeryes.
+#with these three improvements to the data frame lets see how the model fares.
+#(1) added a non-linear term for age
+#(2) created an indicator for obesity
+#(3) specified an interaction between obesity and smoking
+ins_model2 <- lm(expenses ~ age + age2 + children + bmi + sex + bmi30*smoker + region, data = insurance)
+summary(ins_model2)
+#maximum residual error is $24161.6. so at least one prediction was $24,161.6 less than
+#the true value.
+#minimum residul error is -$17297.1. so at least one prediction was $17297.1 greater than
+#the true value.
+#50% of the errors fell between -$1656.0 (1Q) and -$727.8 (3Q). Both over estimates of
+#the true value.
+#age2, children, bmi, smokeryes, regionsouthwest, bmi30:smokeryes were statistically
+#significantly and thus more than likely have a relationship with the dependent variable.
+#finally, from adjusted r squared value, we see that 86% of the model explains the
+#variation in the dependent variable, the medical costs.
+#for instance, bmi30:smokeryes sees a large increase in medical bills on average per year.
+#namely, $19810.15.
